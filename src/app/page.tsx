@@ -9,11 +9,14 @@ export default function Home() {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-
+  
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const limit = 10;
+
+  const [sortField, setSortField] = useState<keyof Advocate | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -61,89 +64,155 @@ export default function Home() {
   const resetSearch = () => {
     setSearchTerm("");
     setCurrentPage(1);
+  };
 
-    return (
-      <main style={{ margin: "24px" }}>
-        <h1>Solace Advocates</h1>
-        <br />
-        <br />
+  const handleSort = (field: keyof Advocate) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
 
-        <div>
-          <p>Search</p>
-          <p>
-            Searching for: <span>{searchTerm}</span>
-          </p>
-          <input
-            style={{ border: "1px solid black" }}
+  const sortedAdvocates = [...advocates].sort((a, b) => {
+    if (!sortField) return 0;
+    
+    const aVal = a[sortField];
+    const bVal = b[sortField];
+    
+    if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+    if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const startIndex = total === 0 ? 0 : (currentPage - 1) * limit + 1;
+  const endIndex = Math.min(currentPage * limit, total);
+
+  const goToPreviousPage = () => setCurrentPage(p => Math.max(1, p - 1));
+  const goToNextPage = () => setCurrentPage(p => Math.min(totalPages, p + 1));
+
+  return (
+    <main className="container mx-auto p-6 max-w-7xl">
+      <h1 className="text-3xl font-bold mb-6">Solace Advocates</h1>
+      
+      <div className="mb-6 flex gap-4 items-end">
+        <div className="flex-1">
+          <label className="block text-sm font-medium mb-2">Search</label>
+          <input 
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+            placeholder="Search by name, city, degree, specialty, or years..."
             value={searchTerm}
             onChange={onSearchChange}
           />
-          <button onClick={resetSearch}>Reset Search</button>
         </div>
-        <br />
-        <br />
+        <button 
+          onClick={resetSearch}
+          className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors"
+        >
+          Reset
+        </button>
+      </div>
+      
+      {loading && <p className="text-gray-600">Loading advocates...</p>}
+      {error && <p className="text-red-600">Error: {error}</p>}
 
-        {loading && <p>Loading advocates...</p>}
-        {error && <p style={{ color: "red" }}>Error: {error}</p>}
-
-        {!loading && !error && (
-          <>
-            <table>
-              <thead>
+      {!loading && !error && (
+        <>
+          <div className="overflow-x-auto bg-white rounded-lg shadow">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
                 <tr>
-                  <th>First Name</th>
-                  <th>Last Name</th>
-                  <th>City</th>
-                  <th>Degree</th>
-                  <th>Specialties</th>
-                  <th>Years of Experience</th>
-                  <th>Phone Number</th>
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    onClick={() => handleSort('firstName')}
+                  >
+                    First Name {sortField === 'firstName' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    onClick={() => handleSort('lastName')}
+                  >
+                    Last Name {sortField === 'lastName' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    onClick={() => handleSort('city')}
+                  >
+                    City {sortField === 'city' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    onClick={() => handleSort('degree')}
+                  >
+                    Degree {sortField === 'degree' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Specialties
+                  </th>
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    onClick={() => handleSort('yearsOfExperience')}
+                  >
+                    Experience {sortField === 'yearsOfExperience' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Phone Number
+                  </th>
                 </tr>
               </thead>
-              <tbody>
-                {advocates.map((advocate: Advocate) => {
+              <tbody className="bg-white divide-y divide-gray-200">
+                {sortedAdvocates.map((advocate: Advocate) => {
                   return (
-                    <tr key={advocate.id}>
-                      <td>{advocate.firstName}</td>
-                      <td>{advocate.lastName}</td>
-                      <td>{advocate.city}</td>
-                      <td>{advocate.degree}</td>
-                      <td>
-                        {advocate.specialties.map((s: string, idx: number) => (
-                          <div key={idx}>{s}</div>
-                        ))}
+                    <tr key={advocate.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{advocate.firstName}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{advocate.lastName}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{advocate.city}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{advocate.degree}</td>
+                      <td className="px-6 py-4 text-sm text-gray-900">
+                        <div className="flex flex-wrap gap-1">
+                          {advocate.specialties.map((s: string, idx: number) => (
+                            <span key={idx} className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                              {s}
+                            </span>
+                          ))}
+                        </div>
                       </td>
-                      <td>{advocate.yearsOfExperience}</td>
-                      <td>{advocate.phoneNumber}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{advocate.yearsOfExperience}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{advocate.phoneNumber}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
-
-            {/* Pagination controls */}
-            <p>Showing {advocates.length} of {total} advocates</p>
-            <br />
-            <div>
+          </div>
+          
+          <div className="mt-6 flex items-center justify-between">
+            <p className="text-sm text-gray-600">
+              Showing advocates {startIndex}-{endIndex} of {total}
+            </p>
+            <div className="flex gap-2 items-center">
               <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                onClick={goToPreviousPage}
                 disabled={currentPage === 1}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
               >
                 Previous
               </button>
-              <span style={{ margin: "0 16px" }}>
+              <span className="text-sm text-gray-600">
                 Page {currentPage} of {totalPages}
               </span>
               <button
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                onClick={goToNextPage}
                 disabled={currentPage === totalPages}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
               >
                 Next
               </button>
             </div>
-          </>
-        )}
-      </main>
-    );
-  }
+          </div>
+        </>
+      )}
+    </main>
+  );
 }
