@@ -1,6 +1,6 @@
 import db from "../../../db";
 import { advocates } from "../../../db/schema";
-import { count, or, ilike, sql } from "drizzle-orm";
+import { count, or, ilike, sql, desc, asc } from "drizzle-orm";
 
 export async function GET(request: Request) {
 
@@ -10,6 +10,9 @@ export async function GET(request: Request) {
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "10")));
     const search = (searchParams.get("search") ?? "").trim();
     const offset = (page - 1) * limit;
+    const sortField = (searchParams.get("sortField"))?.trim()
+    const sortDirection = (searchParams.get("sortDirection"))?.trim()
+
     
     const where = search
       ? or(
@@ -28,13 +31,23 @@ export async function GET(request: Request) {
     const dataQuery = where
       ? baseDataQuery.where(where).limit(limit).offset(offset)
       : baseDataQuery.limit(limit).offset(offset);
+    
+    let orderedDataQuery
+    if (sortField) {
+      orderedDataQuery = sortDirection === "desc"
+        ? dataQuery.orderBy(desc(sql.identifier(sortField)))
+        : dataQuery.orderBy(asc(sql.identifier(sortField)))
+    }
+    else {
+      orderedDataQuery = dataQuery
+    }
 
     const totalQuery = where
       ? baseCountQuery.where(where)
       : baseCountQuery;
 
     const [data, total] = await Promise.all([
-      dataQuery,
+      orderedDataQuery,
       totalQuery
     ]);
 

@@ -30,7 +30,7 @@ export default function Home() {
     const fetchAdvocates = async () => {
       setLoading(true);
       try {
-        const url = `/api/advocates?page=${currentPage}&limit=${limit}${debouncedSearchTerm ? `&search=${encodeURIComponent(debouncedSearchTerm)}` : ''}`;
+        const url = `/api/advocates?page=${currentPage}&limit=${limit}&sortField=${sortField ? sortField : "id"}&sortDirection=${sortDirection ? sortDirection : 'asc'}${debouncedSearchTerm ? `&search=${encodeURIComponent(debouncedSearchTerm)}` : ''}`;
         const response = await fetch(url);
 
         if (!response.ok) {
@@ -53,7 +53,7 @@ export default function Home() {
     };
 
     fetchAdvocates();
-  }, [currentPage, debouncedSearchTerm, limit]);
+  }, [currentPage, debouncedSearchTerm, limit, sortField, sortDirection]);
 
   const onSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.toLowerCase();
@@ -74,17 +74,6 @@ export default function Home() {
       setSortDirection('asc');
     }
   };
-
-  const sortedAdvocates = [...advocates].sort((a, b) => {
-    if (!sortField) return 0;
-    
-    const aVal = a[sortField];
-    const bVal = b[sortField];
-    
-    if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
-    if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
-    return 0;
-  });
 
   const startIndex = total === 0 ? 0 : (currentPage - 1) * limit + 1;
   const endIndex = Math.min(currentPage * limit, total);
@@ -162,7 +151,7 @@ export default function Home() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {sortedAdvocates.map((advocate: Advocate) => {
+                {advocates.map((advocate: Advocate) => {
                   return (
                     <tr key={advocate.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{advocate.firstName}</td>
